@@ -20,8 +20,26 @@ const statuses = [
   "Step 10",
 ];
 
+interface Task {
+  id: string;
+  name: string;
+  status: string;
+}
+
+// Extend Dexie to define the tasks table
+class KanbanDB extends Dexie {
+  tasks!: Table<Task>;
+
+  constructor() {
+    super("KanbanDB");
+    this.version(1).stores({
+      tasks: "id, name, status",
+    });
+  }
+}
+
 // Initialize Dexie (IndexedDB wrapper)
-const db = new Dexie("KanbanDB");
+const db = new KanbanDB("KanbanDB");
 db.version(1).stores({ tasks: "id, name, status" });
 
 const initialTasks = [
