@@ -39,7 +39,7 @@ class KanbanDB extends Dexie {
 }
 
 // Initialize Dexie (IndexedDB wrapper)
-const db = new KanbanDB("KanbanDB");
+const db = new KanbanDB();
 db.version(1).stores({ tasks: "id, name, status" });
 
 const initialTasks = [
