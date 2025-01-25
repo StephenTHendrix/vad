@@ -5,7 +5,7 @@ import { CardContent } from "./components/Card";
 import { Input } from "./components/Input";
 import { Button } from "./components/Button";
 import { XCircle } from "lucide-react";
-import Dexie from "dexie";
+import Dexie, { Table } from "dexie";
 
 const statuses = [
   "Step 1",
