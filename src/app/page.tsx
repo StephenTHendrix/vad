@@ -1,101 +1,169 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useEffect } from "react";
+import { CardContent } from "./components/Card";
+import { Input } from "./components/Input";
+import { Button } from "./components/Button";
+import { XCircle } from "lucide-react";
+import Dexie from "dexie";
+
+const statuses = [
+  "Step 1",
+  "Step 2",
+  "Step 3",
+  "Step 4",
+  "Step 5",
+  "Step 6",
+  "Step 7",
+  "Step 8",
+  "Step 9",
+  "Step 10",
+];
+
+// Initialize Dexie (IndexedDB wrapper)
+const db = new Dexie("KanbanDB");
+db.version(1).stores({ tasks: "id, name, status" });
+
+const initialTasks = [
+  { id: "1", name: "Task 1", status: "Step 1" },
+  { id: "2", name: "Task 2", status: "Step 2" },
+  { id: "3", name: "Task 3", status: "Step 3" },
+  { id: "4", name: "Task 4", status: "Step 4" },
+  { id: "5", name: "Task 5", status: "Step 5" },
+  { id: "6", name: "Task 6", status: "Step 6" },
+  { id: "7", name: "Task 7", status: "Step 7" },
+  { id: "8", name: "Task 8", status: "Step 8" },
+  { id: "9", name: "Task 9", status: "Step 9" },
+  { id: "10", name: "Task 10", status: "Step 10" },
+];
+
+export default function KanbanBoard() {
+  const [tasks, setTasks] = useState([]);
+  const [newTask, setNewTask] = useState("");
+  const [editingTask, setEditingTask] = useState(null);
+  const [editingStatus, setEditingStatus] = useState(null);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      const allTasks = await db.tasks.toArray();
+      if (allTasks.length === 0) {
+        await db.tasks.bulkAdd(initialTasks);
+        setTasks(initialTasks);
+      } else {
+        setTasks(allTasks);
+      }
+    };
+    fetchTasks();
+  }, []);
+
+  const addTask = async () => {
+    if (newTask.trim() === "") return;
+    const task = { id: Date.now().toString(), name: newTask, status: "Step 1" };
+    await db.tasks.add(task);
+    setTasks([...tasks, task]);
+    setNewTask("");
+  };
+
+  const deleteTask = async (id) => {
+    await db.tasks.delete(id);
+    setTasks(tasks.filter((task) => task.id !== id));
+  };
+
+  const handleEditTask = async (id, newName) => {
+    await db.tasks.update(id, { name: newName });
+    setTasks(
+      tasks.map((task) => (task.id === id ? { ...task, name: newName } : task))
+    );
+    setEditingTask(null);
+  };
+
+  const handleEditStatus = (index, newStatus) => {
+    statuses[index] = newStatus;
+    setEditingStatus(null);
+  };
+
+  const handleDragStart = (event) => {
+    const taskId = event.currentTarget.getAttribute("data-task-id");
+    event.dataTransfer.setData("text/plain", taskId);
+  };
+
+  const handleDrop = (event, status) => {
+    const taskId = event.dataTransfer.getData("text/plain");
+    const updatedTasks = tasks.map((task) =>
+      task.id === taskId ? { ...task, status } : task
+    );
+    setTasks(updatedTasks);
+    event.preventDefault();
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+      {statuses.map((status, index) => (
+        <div
+          key={status}
+          onDrop={(event) => handleDrop(event, status)}
+          onDragOver={(event) => event.preventDefault()}
+          className="space-y-2 p-4 bg-gray-100 rounded-lg drop-target"
+        >
+          {editingStatus === index ? (
+            <Input
+              defaultValue={status}
+              onBlur={(e) => handleEditStatus(index, e.target.value)}
+              autoFocus
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          ) : (
+            <h2
+              className="text-xl font-bold cursor-pointer"
+              onClick={() => setEditingStatus(index)}
+            >
+              {status}
+            </h2>
+          )}
+          {tasks
+            .filter((task) => task.status === status)
+            .map((task) => (
+              <div
+                key={task.id}
+                data-task-id={task.id}
+                draggable
+                onDragStart={handleDragStart}
+                className="relative p-2 cursor-pointer bg-white shadow-sm rounded-lg draggable"
+              >
+                <CardContent>
+                  {editingTask === task.id ? (
+                    <Input
+                      defaultValue={task.name}
+                      onBlur={(e) => handleEditTask(task.id, e.target.value)}
+                      autoFocus
+                    />
+                  ) : (
+                    <p
+                      className="cursor-pointer"
+                      onClick={() => setEditingTask(task.id)}
+                    >
+                      {task.name}
+                    </p>
+                  )}
+                  <XCircle
+                    className="absolute top-2 right-2 w-5 h-5 text-red-500 cursor-pointer hover:text-red-700"
+                    onClick={() => deleteTask(task.id)}
+                  />
+                </CardContent>
+              </div>
+            ))}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      ))}
+      <div className="mt-5 col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4 flex space-x-2">
+        <Input
+          value={newTask}
+          onChange={(e) => setNewTask(e.target.value)}
+          placeholder="New task name"
+          className="w-full max-w-md"
+        />
+        <Button onClick={addTask} className="px-4 py-2">
+          Add
+        </Button>
+      </div>
     </div>
   );
 }
