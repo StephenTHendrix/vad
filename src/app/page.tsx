@@ -1,29 +1,36 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { CardContent } from "./components/Card";
+import { CardContent } from "./components/CardContent";
 import { Input } from "./components/Input";
 import { Button } from "./components/Button";
 import { XCircle } from "lucide-react";
 import Dexie, { Table } from "dexie";
 
-const statuses = [
-  "Step 1",
-  "Step 2",
-  "Step 3",
-  "Step 4",
-  "Step 5",
-  "Step 6",
-  "Step 7",
-  "Step 8",
-  "Step 9",
-  "Step 10",
-];
-
 interface Task {
   id: string;
   name: string;
   status: string;
+}
+
+interface InputProps {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  className?: string;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  autoFocus?: boolean;
+  defaultValue?: string;
+}
+
+interface ButtonProps {
+  onClick: () => void;
+  className?: string;
+  children: React.ReactNode;
+}
+
+interface CardContentProps {
+  children: React.ReactNode;
 }
 
 // Extend Dexie to define the tasks table
@@ -38,11 +45,22 @@ class KanbanDB extends Dexie {
   }
 }
 
-// Initialize Dexie (IndexedDB wrapper)
 const db = new KanbanDB();
-db.version(1).stores({ tasks: "id, name, status" });
 
-const initialTasks = [
+const statuses: string[] = [
+  "Step 1",
+  "Step 2",
+  "Step 3",
+  "Step 4",
+  "Step 5",
+  "Step 6",
+  "Step 7",
+  "Step 8",
+  "Step 9",
+  "Step 10",
+];
+
+const initialTasks: Task[] = [
   { id: "1", name: "Task 1", status: "Step 1" },
   { id: "2", name: "Task 2", status: "Step 2" },
   { id: "3", name: "Task 3", status: "Step 3" },
@@ -56,10 +74,10 @@ const initialTasks = [
 ];
 
 export default function KanbanBoard() {
-  const [tasks, setTasks] = useState([]);
-  const [newTask, setNewTask] = useState("");
-  const [editingTask, setEditingTask] = useState(null);
-  const [editingStatus, setEditingStatus] = useState(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [newTask, setNewTask] = useState<string>("");
+  const [editingTask, setEditingTask] = useState<string | null>(null);
+  const [editingStatus, setEditingStatus] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -76,52 +94,52 @@ export default function KanbanBoard() {
 
   const addTask = async () => {
     if (newTask.trim() === "") return;
-    const task = { id: Date.now().toString(), name: newTask, status: "Step 1" };
+    const task: Task = { id: Date.now().toString(), name: newTask, status: "Step 1" };
     await db.tasks.add(task);
-    setTasks([...tasks, task]);
+    setTasks((prevTasks) => [...prevTasks, task]);
     setNewTask("");
   };
 
-  const deleteTask = async (id) => {
+  const deleteTask = async (id: string) => {
     await db.tasks.delete(id);
-    setTasks(tasks.filter((task) => task.id !== id));
+    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id));
   };
 
-  const handleEditTask = async (id, newName) => {
+  const handleEditTask = async (id: string, newName: string) => {
     await db.tasks.update(id, { name: newName });
-    setTasks(
-      tasks.map((task) => (task.id === id ? { ...task, name: newName } : task))
+    setTasks((prevTasks) =>
+      prevTasks.map((task) => (task.id === id ? { ...task, name: newName } : task))
     );
     setEditingTask(null);
   };
 
-  const handleEditStatus = (index, newStatus) => {
-    statuses[index] = newStatus;
+  const handleEditStatus = (index: number, newStatus: string) => {
+    const updatedStatuses = [...statuses];
+    updatedStatuses[index] = newStatus;
     setEditingStatus(null);
   };
 
-  const handleDragStart = (event) => {
-    const taskId = event.currentTarget.getAttribute("data-task-id");
+  const handleDragStart = (event: React.DragEvent<HTMLDivElement>) => {
+    const taskId = event.currentTarget.getAttribute("data-task-id")!;
     event.dataTransfer.setData("text/plain", taskId);
   };
 
-  const handleDrop = (event, status) => {
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>, status: string) => {
     const taskId = event.dataTransfer.getData("text/plain");
-    const updatedTasks = tasks.map((task) =>
-      task.id === taskId ? { ...task, status } : task
+    setTasks((prevTasks) =>
+      prevTasks.map((task) => (task.id === taskId ? { ...task, status } : task))
     );
-    setTasks(updatedTasks);
     event.preventDefault();
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4 bg-white dark:bg-gray-900 text-black dark:text-white">
       {statuses.map((status, index) => (
         <div
           key={status}
           onDrop={(event) => handleDrop(event, status)}
           onDragOver={(event) => event.preventDefault()}
-          className="space-y-2 p-4 bg-gray-100 rounded-lg drop-target"
+          className="space-y-2 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg drop-target"
         >
           {editingStatus === index ? (
             <Input
@@ -145,7 +163,7 @@ export default function KanbanBoard() {
                 data-task-id={task.id}
                 draggable
                 onDragStart={handleDragStart}
-                className="relative p-2 cursor-pointer bg-white shadow-sm rounded-lg draggable"
+                className="relative p-2 cursor-pointer bg-white dark:bg-gray-700 shadow-sm rounded-lg draggable"
               >
                 <CardContent>
                   {editingTask === task.id ? (
@@ -163,7 +181,7 @@ export default function KanbanBoard() {
                     </p>
                   )}
                   <XCircle
-                    className="absolute top-2 right-2 w-5 h-5 text-red-500 cursor-pointer hover:text-red-700"
+                    className="absolute top-2 right-2 w-5 h-5 text-red-500 dark:text-red-400 cursor-pointer hover:text-red-700 dark:hover:text-red-500"
                     onClick={() => deleteTask(task.id)}
                   />
                 </CardContent>
@@ -176,9 +194,9 @@ export default function KanbanBoard() {
           value={newTask}
           onChange={(e) => setNewTask(e.target.value)}
           placeholder="New task name"
-          className="w-full max-w-md"
+          className="w-full max-w-md bg-gray-100 dark:bg-gray-800 text-black dark:text-white"
         />
-        <Button onClick={addTask} className="px-4 py-2">
+        <Button onClick={addTask} className="px-4 py-2 bg-blue-500 text-white hover:bg-blue-600">
           Add
         </Button>
       </div>
