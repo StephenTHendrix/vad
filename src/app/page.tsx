@@ -13,26 +13,6 @@ interface Task {
   status: string;
 }
 
-interface InputProps {
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  placeholder?: string;
-  className?: string;
-  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
-  autoFocus?: boolean;
-  defaultValue?: string;
-}
-
-interface ButtonProps {
-  onClick: () => void;
-  className?: string;
-  children: React.ReactNode;
-}
-
-interface CardContentProps {
-  children: React.ReactNode;
-}
-
 // Extend Dexie to define the tasks table
 class KanbanDB extends Dexie {
   tasks!: Table<Task>;
